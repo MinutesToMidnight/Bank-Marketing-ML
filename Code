@@ -10,10 +10,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from imblearn.over_sampling import SMOTE
-
+from collections import defaultdict
 
 def load_data(path_to_file):
     return pd.read_csv(path_to_file, sep=';')
+
+
+def count_missing(df):
+    d = defaultdict(int)
+    for col in df.columns.to_list():
+        for value in df[col]:
+            if value == 'unknown':
+                d[col] += 1
+    for col in d:
+        print(f"{col}: {d[col]}")
 
 
 def preprocess(df):
@@ -120,6 +130,7 @@ def boxplot(df, numeric_columns):
 if __name__ == "__main__":
     path_to_file = "D:/Python/Python Projects/PycharmProjects/bank-full.csv"
     df = load_data(path_to_file)
+    count_missing(df)
     X, y, preprocessor, numeric_columns = preprocess(df)
     # hist(df, numeric_columns)
     # boxplot(df, numeric_columns)
