@@ -12,6 +12,7 @@ import seaborn as sns
 from imblearn.over_sampling import SMOTE
 from collections import defaultdict
 
+
 def load_data(path_to_file):
     return pd.read_csv(path_to_file, sep=';')
 
@@ -81,7 +82,6 @@ def train(X, y, model):
 def evaluate(X_test, y_test, model, y_size):
     model.eval()
 
-    # Инициализация матрицы ошибок
     confusion_matrix = [[0] * y_size for _ in range(y_size)]
     Q = 0
     predictions = []
@@ -99,7 +99,6 @@ def evaluate(X_test, y_test, model, y_size):
     for index, line in enumerate(confusion_matrix):
         print(index, *line)
 
-    # Преобразование предсказаний и истинных меток в CPU и numpy
     predictions = torch.tensor(predictions, dtype=torch.long).cpu().numpy()
     y_test_cpu = y_test.cpu().numpy()
 
@@ -107,7 +106,6 @@ def evaluate(X_test, y_test, model, y_size):
 
 
 def hist(df, numeric_columns):
-    # Построение столбчатых диаграмм для каждого числового параметра с разделением по классам на одном графике
     for column in numeric_columns:
         plt.figure(figsize=(10, 5))
         sns.histplot(data=df, x=column, hue='y', multiple='stack', palette='coolwarm')
@@ -138,3 +136,11 @@ if __name__ == "__main__":
     model = nn.Sequential(nn.Linear(X[1].size, y_size))
     X_test, y_test = train(X, y, model)
     evaluate(X_test, y_test, model, y_size)
+
+
+# Output:
+# Accuracy: 82.51%
+# Confusion matrix:
+# 0 8940 1153
+# 1 3037 10824
+# F1-score: 0.838
