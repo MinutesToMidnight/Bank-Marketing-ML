@@ -9,3 +9,8 @@ which is marked manually. Classes imbalance is detected automatically. In case o
 Visualizer contains two functions for visualizing. get_graphs() function realizes the choice of the graphs to be used.
 
 main contains the example of using the above-mentioned modules, using the csv-file for an instance
+
+How to use the modules:
+1)Create files .py and copy the code from each module
+2)Import classes from modules into your project
+Defining the data type of the columns and passing keywords to transform binary data into binary form(0/1) (for DataLoader preprocessing), splitting data are on the user.
