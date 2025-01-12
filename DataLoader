@@ -1,5 +1,5 @@
 import pandas as pd
-from collections import defaultdict, Counter
+from collections import Counter
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 import numpy as np
@@ -22,18 +22,30 @@ class DataLoader:
 
     @staticmethod
     def find_imbalance(y):
+        """Detecting imbalance in the case where the ratio of the number
+         of majority class objects to minority class objects is more than 2.5 times"""
         cls_inst_amount = Counter(y)
         highest_imbalance = max(cls_inst_amount.values()) / min(cls_inst_amount.values())
         return highest_imbalance > 2.5
 
     @staticmethod
     def smote_balance(X, y):
+        """Fixing imbalance via SMOTE. The ratio of the instances of the classes to each other is 1"""
         smote = SMOTE(sampling_strategy="auto")
         X_resampled, y_resampled = smote.fit_resample(X, y)
         return X_resampled, y_resampled
 
     def preprocess(self, df, numeric_columns=(), categorial_columns=(),
                    binary_columns=(), target_column="", target_type="numeric", keywords_for_binary={}):
+        """Prepocessing of pandas dataframe. Considered to define all the _columns values
+           in case of defining at least one of them. Not passing any of them all columns
+           are considered to be numerical.
+           Keywords for binary is a 2-D hashtable where for each column name is defined another hashtable
+           denoting the corresponding binary value for the original value. In case binary column name is absent
+           in the keywords it is considered that data is already in binary form.
+           target_column is the name of the targeted column. It must be included in one of the columns in
+           case of defining one of them. The name of the targeted column must be THE LAST value in the _columns lists.
+           target_type defines in which _columns list the target_column is located"""
         if not numeric_columns and not categorial_columns and not binary_columns:
             numeric_columns = df.columns.to_list()
 
