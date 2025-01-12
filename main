@@ -34,3 +34,10 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=True, random_state=42, stratify=y)
     trigger.train(X_train, y_train, epochs=3)
     trigger.evaluate(X_test, y_test)
+
+# Output
+# Accuracy: 84.125%
+# Confusion matrix:
+# 0 987 168
+# 1 213 1032
+# F1-score: 0.8442
