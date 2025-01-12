@@ -1,0 +1,74 @@
+import pandas as pd
+from collections import defaultdict, Counter
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+import numpy as np
+from imblearn.over_sampling import SMOTE
+
+
+class DataLoader:
+    def __init__(self, path_to_file):
+        self.path_to_file = path_to_file
+
+    def load_data(self):
+        return pd.read_csv(self.path_to_file, sep=';')
+
+    @staticmethod
+    def count_missing(df):
+        """Method returns hashtable with key as a column name and a value denoting the
+           amount of missing values"""
+        d = {col: val for col in df.columns.to_list() if (val := len([1 for value in df[col] if value == "unknown"]))}
+        return d
+
+    @staticmethod
+    def find_imbalance(y):
+        cls_inst_amount = Counter(y)
+        highest_imbalance = max(cls_inst_amount.values()) / min(cls_inst_amount.values())
+        return highest_imbalance > 2.5
+
+    @staticmethod
+    def smote_balance(X, y):
+        smote = SMOTE(sampling_strategy="auto")
+        X_resampled, y_resampled = smote.fit_resample(X, y)
+        return X_resampled, y_resampled
+
+    def preprocess(self, df, numeric_columns=(), categorial_columns=(),
+                   binary_columns=(), target_column="", target_type="numeric", keywords_for_binary={}):
+        if not numeric_columns and not categorial_columns and not binary_columns:
+            numeric_columns = df.columns.to_list()
+
+        if not target_column:
+            target_column = df.columns[-1]
+
+        for col in binary_columns:
+            if col not in keywords_for_binary:
+                continue
+            df[col] = df[col].map(keywords_for_binary[col])
+
+        X = df.drop(columns=[target_column])
+        y = df[target_column]
+
+        try:
+            eval(target_type + "_columns.pop()")
+        except NameError:
+            raise TypeError("Target type must be one of those: numeric, categorial, binary")
+
+        scaler = StandardScaler()
+        encoder = OneHotEncoder()
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', scaler, numeric_columns),
+                ('cat', encoder, categorial_columns),
+                ('bin', 'passthrough', binary_columns)
+            ]
+        )
+
+        X = preprocessor.fit_transform(X)
+        mean_value = np.nanmean(X)
+        X = np.where(np.isnan(X), mean_value, X)
+
+        if self.find_imbalance(y):
+             X, y = self.smote_balance(X, y)
+
+        return X, y, preprocessor
+
