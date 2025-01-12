@@ -1,0 +1,54 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+class Visualizer:
+    def __init__(self):
+        self.methods = [func for func in self.__dir__() if callable(getattr(self, func))
+                        and not func.startswith("_") and func != "get_graphs"]
+
+    def __print_methods_to_choose(self):
+        for count, method in enumerate(self.methods, 1):
+            print(f"{count}: {getattr(self, method).__doc__}")
+            count += 1
+
+    def get_graphs(self):
+        print("print STOP to stop choosing")
+        chosen = []
+        while self.methods:
+            self.__print_methods_to_choose()
+            high_bord = len(self.methods)
+            try:
+                choice = input()
+                if choice == "STOP":
+                    return chosen
+                choice = int(choice)
+                if not 1 <= choice <= high_bord:
+                    print(f"The input must be a number in range 1-{high_bord}")
+                    continue
+                chosen.append(getattr(self, self.methods.pop(choice - 1)))
+            except ValueError:
+                print(f"The input must be a number in range 1-{high_bord}")
+        return chosen
+
+    @staticmethod
+    def hist(df, numeric_columns):
+        """Building bar charts for each numerical parameter with class separation"""
+        for column in numeric_columns:
+            plt.figure(figsize=(10, 5))
+            sns.histplot(data=df, x=column, hue='y', multiple='stack', palette='coolwarm')
+            plt.xlabel('Частота появления')
+            plt.ylabel(column)
+            plt.title(f'Столбчатая диаграмма для {column} с разделением по классам')
+            plt.show()
+
+    @staticmethod
+    def boxplot(df, numeric_columns):
+        """Building boxplots for numerical parameters with class separation"""
+        for column in numeric_columns:
+            plt.figure(figsize=(10, 5))
+            sns.boxplot(x='y', y=column, data=df, palette='coolwarm')
+            plt.title(f'Ящик с усами для {column} по классам')
+            plt.xlabel('Класс')
+            plt.ylabel(column)
+            plt.show()
