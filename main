@@ -1,10 +1,11 @@
-from torch import tensor, float32, long
+from torch import tensor, float32, long, unique
 import torch.nn as nn
 import torch.optim as optim
 from sklearn.model_selection import train_test_split
 from DataLoader import DataLoader
 from Visualizer import Visualizer
 from MLModel import ModelUse
+
 
 if __name__ == "__main__":
     path_to_file = "D:/Python/Python Projects/PycharmProjects/bank-full.csv"
@@ -29,15 +30,17 @@ if __name__ == "__main__":
         method(df, numeric_columns)
     print()
     X, y = tensor(X, dtype=float32), tensor(y, dtype=long)
-    model = nn.Sequential(nn.Linear(X.size(1), len(set(y))))
-    trigger = ModelUse(model=model, optimizer=optim.Adam(model.parameters(), lr=0.01), criterion=nn.CrossEntropyLoss())
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=True, random_state=42, stratify=y)
+    model = nn.Sequential(nn.Linear(X.size(1), len(unique(y_test))))
+    trigger = ModelUse(model=model, optimizer=optim.Adam(model.parameters(), lr=0.01), criterion=nn.CrossEntropyLoss())
     trigger.train(X_train, y_train, epochs=3)
     trigger.evaluate(X_test, y_test)
 
-# Output
-# Accuracy: 84.125%
+
+# Accuracy: 82.47056579589844%
+#
 # Confusion matrix:
-# 0 987 168
-# 1 213 1032
-# F1-score: 0.8442
+# 0 8598 820
+# 1 3379 11157
+# F1-score: 0.84162486327462
+# ROC-AUC score: 0.9064
