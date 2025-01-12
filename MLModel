@@ -1,5 +1,7 @@
 import torch
-from sklearn.metrics import f1_score
+import torch.nn.functional as F
+from sklearn.metrics import f1_score, roc_auc_score
+import numpy as np
 
 
 class ModelUse:
@@ -26,10 +28,12 @@ class ModelUse:
         confusion_matrix = [[0] * y_size for _ in range(y_size)]
         Q = 0
         predictions = []
+        probabilities_of_predictions = []
 
         with torch.no_grad():
             for x_t, y_t in zip(X_test, y_test):
                 predict = self.model(x_t)
+                probabilities_of_predictions.append(F.softmax(predict, dim=0))
                 predict = torch.argmax(predict)
                 predictions.append(predict)
                 confusion_matrix[predict][y_t] += 1
@@ -38,10 +42,22 @@ class ModelUse:
         print(f"Accuracy: {Q / len(y_test) * 100}%")
         print(f"\nConfusion matrix:")
         for index, line in enumerate(confusion_matrix):
-            print(index, *line)
+            print(f"{index}) ", end="")
+            print(*line)
 
         # Преобразование предсказаний и истинных меток в CPU и numpy
         predictions = torch.tensor(predictions, dtype=torch.long).cpu().numpy()
         y_test_cpu = y_test.cpu().numpy()
 
-        print(f"F1-score: {f1_score(predictions, y_test_cpu)}")
+        print(f"F1-score: {f1_score(predictions, y_test_cpu, average='weighted')}")
+
+        probabilities_of_predictions = np.array(probabilities_of_predictions, dtype=np.float32)
+
+        if y_size == 2:
+            roc_auc = roc_auc_score(y_test_cpu, probabilities_of_predictions[:, 1])
+            print(f"ROC-AUC score: {roc_auc:.4f}")
+        else:
+            roc_auc_ovr = roc_auc_score(y_test_cpu, probabilities_of_predictions, multi_class='ovr')
+            roc_auc_ovo = roc_auc_score(y_test_cpu, probabilities_of_predictions, multi_class='ovo')
+            print(f"ROC-AUC score (ovr): {roc_auc_ovr:.4f}")
+            print(f"ROC-AUC score (ovo): {roc_auc_ovo:.4f}")
