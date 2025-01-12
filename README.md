@@ -1,3 +1,4 @@
+Currently modules are designed for multiclassification problem
 MLModel contains class ModelUse. Initializing a class instance it is needed to initialize model preset, loss function and optimizer.
 The class contains functions for training and evaluating the given model by passing required training/testing data
 
