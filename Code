@@ -1,146 +1,36 @@
-import torch
+from torch import tensor, float32, long
 import torch.nn as nn
 import torch.optim as optim
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.metrics import f1_score
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from imblearn.over_sampling import SMOTE
-from collections import defaultdict
-
-
-def load_data(path_to_file):
-    return pd.read_csv(path_to_file, sep=';')
-
-
-def count_missing(df):
-    d = defaultdict(int)
-    for col in df.columns.to_list():
-        for value in df[col]:
-            if value == 'unknown':
-                d[col] += 1
-    for col in d:
-        print(f"{col}: {d[col]}")
-
-
-def preprocess(df):
-    categorial_columns = ["job", "marital", "education", "contact", "month", "poutcome"]
-    binary_columns = ["default", "housing", "loan"]
-
-    for col in binary_columns:
-        df[col] = df[col].map({'yes': 1, 'no': 0})
-
-    df['y'] = df['y'].map({'yes': 1, 'no': 0})
-
-    X = df.drop(columns=["y"])
-    y = df["y"]
-
-    numeric_columns = list(set(X.columns) - set(categorial_columns) - set(binary_columns))
-
-    scaler = StandardScaler()
-    encoder = OneHotEncoder()
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', scaler, numeric_columns),
-            ('cat', encoder, categorial_columns),
-            ('bin', 'passthrough', binary_columns)
-        ]
-    )
-
-    X = preprocessor.fit_transform(X)
-    mean_value = np.nanmean(X)
-    X = np.where(np.isnan(X), mean_value, X)
-
-    smote = SMOTE()
-    X, y = smote.fit_resample(X, y)
-
-    return X, y, preprocessor, numeric_columns
-
-
-def train(X, y, model):
-    X = torch.tensor(X, dtype=torch.float32)
-    y = torch.tensor(y, dtype=torch.long)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
-    model.train()
-    criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0, 20.0]))
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
-    for epoch in range(10):
-        for x_tr, y_tr in zip(X_train, y_train):
-            predict = model(x_tr)
-            loss = criterion(predict, y_tr)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-    return X_test, y_test
-
-
-def evaluate(X_test, y_test, model, y_size):
-    model.eval()
-
-    confusion_matrix = [[0] * y_size for _ in range(y_size)]
-    Q = 0
-    predictions = []
-
-    with torch.no_grad():
-        for x_t, y_t in zip(X_test, y_test):
-            predict = model(x_t)
-            predict = torch.argmax(predict)
-            predictions.append(predict)
-            confusion_matrix[predict][y_t] += 1
-            Q += predict == y_t
-
-    print(f"Accuracy: {Q / len(y_test) * 100}%")
-    print(f"\nConfusion matrix:")
-    for index, line in enumerate(confusion_matrix):
-        print(index, *line)
-
-    predictions = torch.tensor(predictions, dtype=torch.long).cpu().numpy()
-    y_test_cpu = y_test.cpu().numpy()
-
-    print(f"F1-score: {f1_score(predictions, y_test_cpu)}")
-
-
-def hist(df, numeric_columns):
-    for column in numeric_columns:
-        plt.figure(figsize=(10, 5))
-        sns.histplot(data=df, x=column, hue='y', multiple='stack', palette='coolwarm')
-        plt.xlabel('Частота появления')
-        plt.ylabel(column)
-        plt.title(f'Столбчатая диаграмма для {column} с разделением по классам')
-        plt.show()
-
-
-def boxplot(df, numeric_columns):
-    for column in numeric_columns:
-        plt.figure(figsize=(10, 5))
-        sns.boxplot(x='y', y=column, data=df, palette='coolwarm')
-        plt.title(f'Ящик с усами для {column} по классам')
-        plt.xlabel('Класс')
-        plt.ylabel(column)
-        plt.show()
-
+from DataLoader import DataLoader
+from Visualizer import Visualizer
+from MLModel import ModelUse
 
 if __name__ == "__main__":
     path_to_file = "D:/Python/Python Projects/PycharmProjects/bank-full.csv"
-    df = load_data(path_to_file)
-    count_missing(df)
-    X, y, preprocessor, numeric_columns = preprocess(df)
-    # hist(df, numeric_columns)
-    # boxplot(df, numeric_columns)
-    y_size = len(set(y))
-    model = nn.Sequential(nn.Linear(X[1].size, y_size))
-    X_test, y_test = train(X, y, model)
-    evaluate(X_test, y_test, model, y_size)
-
-
-# Output:
-# Accuracy: 82.51%
-# Confusion matrix:
-# 0 8940 1153
-# 1 3037 10824
-# F1-score: 0.838
+    DL = DataLoader(path_to_file)
+    df = DL.load_data()
+    d = DL.count_missing(df)
+    for col in d:
+        print(f"{col}: {d[col]}")
+    print()
+    categorial_columns = ["job", "marital", "education", "contact", "month", "poutcome"]
+    binary_columns = ["default", "housing", "loan", "y"]
+    numeric_columns = list(set(df.columns) - set(categorial_columns) - set(binary_columns))
+    X, y, preprocessor = DL.preprocess(df, numeric_columns=numeric_columns,
+                                       binary_columns=binary_columns,
+                                       categorial_columns=categorial_columns,
+                                       keywords_for_binary={col: {"yes": 1, "no": 0} for col in binary_columns},
+                                       target_column=df.columns[-1],
+                                       target_type="binary")
+    visualize = Visualizer()
+    graph_funcs = visualize.get_graphs()
+    for method in graph_funcs:
+        method(df, numeric_columns)
+    print()
+    X, y = tensor(X, dtype=float32), tensor(y, dtype=long)
+    model = nn.Sequential(nn.Linear(X.size(1), len(set(y))))
+    trigger = ModelUse(model=model, optimizer=optim.Adam(model.parameters(), lr=0.01), criterion=nn.CrossEntropyLoss())
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=True, random_state=42, stratify=y)
+    trigger.train(X_train, y_train, epochs=3)
+    trigger.evaluate(X_test, y_test)
