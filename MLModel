@@ -1,0 +1,47 @@
+import torch
+from sklearn.metrics import f1_score
+
+
+class ModelUse:
+    def __init__(self, model, optimizer, criterion):
+        self.model = model
+        self.optimizer = optimizer
+        self.criterion = criterion
+
+    def train(self, X_train, y_train, epochs=10):
+        self.model.train()
+        for epoch in range(epochs):
+            for x_tr, y_tr in zip(X_train, y_train):
+                predict = self.model(x_tr)
+                loss = self.criterion(predict, y_tr)
+
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+
+    def evaluate(self, X_test, y_test):
+        self.model.eval()
+        y_size = len(torch.unique(y_test))
+
+        confusion_matrix = [[0] * y_size for _ in range(y_size)]
+        Q = 0
+        predictions = []
+
+        with torch.no_grad():
+            for x_t, y_t in zip(X_test, y_test):
+                predict = self.model(x_t)
+                predict = torch.argmax(predict)
+                predictions.append(predict)
+                confusion_matrix[predict][y_t] += 1
+                Q += predict == y_t
+
+        print(f"Accuracy: {Q / len(y_test) * 100}%")
+        print(f"\nConfusion matrix:")
+        for index, line in enumerate(confusion_matrix):
+            print(index, *line)
+
+        # Преобразование предсказаний и истинных меток в CPU и numpy
+        predictions = torch.tensor(predictions, dtype=torch.long).cpu().numpy()
+        y_test_cpu = y_test.cpu().numpy()
+
+        print(f"F1-score: {f1_score(predictions, y_test_cpu)}")
