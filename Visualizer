@@ -37,8 +37,8 @@ class Visualizer:
         for column in numeric_columns:
             plt.figure(figsize=(10, 5))
             sns.histplot(data=df, x=column, hue='y', multiple='stack', palette='coolwarm')
-            plt.xlabel('Частота появления')
-            plt.ylabel(column)
+            plt.ylabel('Частота появления')
+            plt.xlabel(column)
             plt.title(f'Столбчатая диаграмма для {column} с разделением по классам')
             plt.show()
 
@@ -47,7 +47,7 @@ class Visualizer:
         """Building boxplots for numerical parameters with class separation"""
         for column in numeric_columns:
             plt.figure(figsize=(10, 5))
-            sns.boxplot(x='y', y=column, data=df, palette='coolwarm')
+            sns.boxplot(x='y', y=column, hue='y', data=df, palette='coolwarm')
             plt.title(f'Ящик с усами для {column} по классам')
             plt.xlabel('Класс')
             plt.ylabel(column)
